@@ -106,6 +106,42 @@ void list_add_ascending_by_address(list_t *l, block_t *newblk){
    *    node_t *c = l.head;
    *    Insert newblk After Current Node if:   newblk->start > c->start
    */
+    node_t *current;
+    node_t *prev;
+    node_t *newNode = node_alloc(newblk);
+
+    if(l->head == NULL){
+      l->head = newNode;
+    }
+    else{
+      prev = current = l->head;
+
+      if(current->next == NULL) {  //only one node in list
+         if(newblk->start <= current->blk->start) {  
+            newNode->next = l->head;
+            l->head = newNode;
+         }
+         else {   // Insert newblk After Current Node if:   newblk->start > c->start
+            current->next = newNode;
+            newNode->next = NULL;
+         }
+      }
+      else {  // two or more nodes in list
+
+         if(newNode->blk->start <= current->blk->start) {  // place in front of current node
+            newNode->next = l->head;
+            l->head = newNode;
+         }
+         else {
+            while(current != NULL && newNode->blk->start >= current->blk->start) {
+                 prev = current;
+                 current = current->next;    
+            }
+            prev->next = newNode;
+            newNode->next = current;
+         }
+      }
+    }
 }
 
 void list_add_ascending_by_blocksize(list_t *l, block_t *newblk){
@@ -123,6 +159,50 @@ void list_add_ascending_by_blocksize(list_t *l, block_t *newblk){
    * 
    *    USE the compareSize()
    */
+    node_t *current;
+    node_t *prev;
+    node_t *newNode = node_alloc(newblk);
+    int newblk_size = newNode->blk->end - newNode->blk->start;
+    int curr_blocksize;
+
+    if(l->head == NULL){
+      l->head = newNode;
+    }
+    else{
+      prev = current = l->head;
+
+      curr_blocksize = current->blk->end - current->blk->start + 1;
+
+      if(current->next == NULL) {  //only one node in list
+         if(newblk_size >= curr_blocksize) {  // place in front of current node
+            newNode->next = l->head;
+            l->head = newNode;
+         }
+         else {   // place behind current node
+            current->next = newNode;
+            newNode->next = NULL;
+         }
+      }
+      else {  // two or more nodes in list
+
+         if(newblk_size >= curr_blocksize) {  // place in front of current node
+            newNode->next = l->head;
+            l->head = newNode;
+         }
+         else {
+
+            while(current != NULL && newblk_size <= curr_blocksize) {
+                 prev = current;
+                 current = current->next;
+
+                 if(current != NULL)  // the last one in the list
+                       curr_blocksize = current->blk->end - current->blk->start;
+            }
+            prev->next = newNode;
+            newNode->next = current;
+         }
+      }
+    }
 }
 
 void list_add_descending_by_blocksize(list_t *l, block_t *blk){
@@ -187,6 +267,28 @@ void list_coalese_nodes(list_t *l){
    * 
    * USE the compareSize()
    */
+    if (!l->head || !l->head->next){
+      return;
+    }
+
+    node_t *prev = l->head;
+    node_t *curr = l->head->next;
+
+    while(curr){
+      if (prev->blk->end + 1 == curr->blk->start){
+        prev->blk->end = curr->blk->end;
+        prev->next = curr->next;
+
+        free(curr->blk);
+        free(curr);
+
+        curr = prev->next;
+      }
+      else{
+        prev = curr;
+        curr = curr->next;
+      }
+    }
 }
 
 block_t* list_remove_from_back(list_t *l){
@@ -373,6 +475,15 @@ bool list_is_in_by_pid(list_t *l, int pid){
    * USE the comparePID()
    * 
    * Look at list_is_in_by_size()
+   **/
+    node_t *current = l->head;
+    while(current != NULL){
+      if(comparePid(pid, current->blk)){
+        return true;
+      }
+      current = current->next;
+    }
+    return false;
 }
 
 /* Returns the index at which the given block of Size or greater appears. */
